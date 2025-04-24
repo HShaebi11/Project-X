@@ -34,6 +34,7 @@ struct ContentView: View {
             }
             .navigationTitle("Todo List")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddTodo = true
@@ -41,6 +42,15 @@ struct ContentView: View {
                         Image(systemName: "plus")
                     }
                 }
+                #else
+                ToolbarItem {
+                    Button(action: {
+                        showingAddTodo = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $showingAddTodo) {
                 AddTodoView { newTodo in
