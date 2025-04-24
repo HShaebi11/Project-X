@@ -229,6 +229,8 @@ struct WhiteboardDetailView: View {
 }
 #endif
 
-#Preview {
-    WhiteboardView()
+struct WhiteboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        WhiteboardView()
+    }
 } 

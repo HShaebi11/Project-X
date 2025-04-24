@@ -269,7 +269,7 @@ struct CaptureDetailView: View {
                     }
                 }
             }
-            .onChange(of: selectedImage) { newValue in
+            .onChange(of: selectedImage) { oldValue, newValue in
                 Task {
                     if let data = try? await newValue?.loadTransferable(type: Data.self) {
                         capture.imageData = data
@@ -318,6 +318,8 @@ struct CaptureDetailView: View {
     }
 }
 
-#Preview {
-    CaptureView()
+struct CaptureView_Previews: PreviewProvider {
+    static var previews: some View {
+        CaptureView()
+    }
 } 

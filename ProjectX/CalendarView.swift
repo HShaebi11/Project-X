@@ -61,11 +61,19 @@ struct CalendarView: View {
     }
     
     private func requestAccess() {
+        #if os(iOS)
         eventStore.requestAccess(to: .event) { granted, error in
             if granted {
                 loadEvents()
             }
         }
+        #else
+        eventStore.requestFullAccessToEvents { granted, error in
+            if granted {
+                loadEvents()
+            }
+        }
+        #endif
     }
     
     private func loadEvents() {
@@ -130,6 +138,8 @@ struct AddEventView: View {
     }
 }
 
-#Preview {
-    CalendarView()
+struct CalendarView_Previews: PreviewProvider {
+    static var previews: some View {
+        CalendarView()
+    }
 } 

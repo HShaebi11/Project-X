@@ -136,6 +136,8 @@ struct NoteDetailView: View {
     }
 }
 
-#Preview {
-    NotesView()
+struct NotesView_Previews: PreviewProvider {
+    static var previews: some View {
+        NotesView()
+    }
 } 
