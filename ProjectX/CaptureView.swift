@@ -1,6 +1,11 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
 struct Capture: Identifiable, Codable {
     var id = UUID()
@@ -39,7 +44,12 @@ struct CaptureView: View {
         NavigationView {
             List {
                 ForEach(filteredCaptures) { capture in
-                    NavigationLink(destination: CaptureDetailView(capture: capture)) {
+                    NavigationLink(destination: CaptureDetailView(capture: capture, onSave: { updatedCapture in
+                        if let index = captures.firstIndex(where: { $0.id == updatedCapture.id }) {
+                            captures[index] = updatedCapture
+                            saveCaptures()
+                        }
+                    })) {
                         CaptureRowView(capture: capture)
                     }
                 }
@@ -48,6 +58,7 @@ struct CaptureView: View {
             .searchable(text: $searchText, prompt: "Search captures")
             .navigationTitle("Capture")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
@@ -74,6 +85,34 @@ struct CaptureView: View {
                         Image(systemName: "plus")
                     }
                 }
+                #else
+                ToolbarItem {
+                    Menu {
+                        Button(action: {
+                            selectedType = .text
+                            showingAddCapture = true
+                        }) {
+                            Label("Text Note", systemImage: "text.bubble")
+                        }
+                        
+                        Button(action: {
+                            selectedType = .photo
+                            showingAddCapture = true
+                        }) {
+                            Label("Photo", systemImage: "camera")
+                        }
+                        
+                        Button(action: {
+                            selectedType = .audio
+                            showingAddCapture = true
+                        }) {
+                            Label("Audio Note", systemImage: "mic")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $showingAddCapture) {
                 CaptureDetailView(capture: Capture(
@@ -172,12 +211,22 @@ struct CaptureDetailView: View {
                         .frame(minHeight: 200)
                     
                 case .photo:
-                    if let imageData = capture.imageData,
-                       let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
+                    if let imageData = capture.imageData {
+                        #if os(iOS)
+                        if let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 300)
+                        }
+                        #else
+                        if let nsImage = NSImage(data: imageData) {
+                            Image(nsImage: nsImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 300)
+                        }
+                        #endif
                     }
                     
                     PhotosPicker(selection: $selectedImage,
@@ -207,15 +256,19 @@ struct CaptureDetailView: View {
                 }
             }
             .navigationTitle("New Capture")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Save") {
-                    onSave(capture)
-                    dismiss()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-            )
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(capture)
+                        dismiss()
+                    }
+                }
+            }
             .onChange(of: selectedImage) { newValue in
                 Task {
                     if let data = try? await newValue?.loadTransferable(type: Data.self) {

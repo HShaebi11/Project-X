@@ -33,6 +33,7 @@ struct CalendarView: View {
             }
             .navigationTitle("Calendar")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddEvent = true
@@ -40,6 +41,15 @@ struct CalendarView: View {
                         Image(systemName: "plus")
                     }
                 }
+                #else
+                ToolbarItem {
+                    Button(action: {
+                        showingAddEvent = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $showingAddEvent) {
                 AddEventView(eventStore: eventStore)
@@ -89,15 +99,19 @@ struct AddEventView: View {
                 DatePicker("End Time", selection: $endDate)
             }
             .navigationTitle("New Event")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Save") {
-                    saveEvent()
-                    dismiss()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-            )
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveEvent()
+                        dismiss()
+                    }
+                }
+            }
         }
     }
     

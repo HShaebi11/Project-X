@@ -1,5 +1,9 @@
 import SwiftUI
+#if os(iOS)
 import PencilKit
+#else
+import AppKit
+#endif
 
 struct Whiteboard: Identifiable, Codable {
     var id = UUID()
@@ -41,6 +45,7 @@ struct WhiteboardView: View {
             .searchable(text: $searchText, prompt: "Search whiteboards")
             .navigationTitle("Whiteboard")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddWhiteboard = true
@@ -48,6 +53,15 @@ struct WhiteboardView: View {
                         Image(systemName: "plus")
                     }
                 }
+                #else
+                ToolbarItem {
+                    Button(action: {
+                        showingAddWhiteboard = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $showingAddWhiteboard) {
                 WhiteboardDetailView(whiteboard: Whiteboard(
@@ -98,6 +112,7 @@ struct WhiteboardRowView: View {
     }
 }
 
+#if os(iOS)
 struct WhiteboardDetailView: View {
     @Environment(\.dismiss) var dismiss
     let onSave: (Whiteboard) -> Void
@@ -129,16 +144,20 @@ struct WhiteboardDetailView: View {
                     }
             }
             .navigationTitle("Whiteboard")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Save") {
-                    whiteboard.drawingData = canvasView.drawing.dataRepresentation()
-                    onSave(whiteboard)
-                    dismiss()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-            )
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        whiteboard.drawingData = canvasView.drawing.dataRepresentation()
+                        onSave(whiteboard)
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
@@ -168,6 +187,47 @@ struct CanvasView: UIViewRepresentable {
         }
     }
 }
+#else
+struct WhiteboardDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    let onSave: (Whiteboard) -> Void
+    
+    @State private var whiteboard: Whiteboard
+    
+    init(whiteboard: Whiteboard, onSave: @escaping (Whiteboard) -> Void) {
+        _whiteboard = State(initialValue: whiteboard)
+        self.onSave = onSave
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                TextField("Title", text: $whiteboard.title)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                
+                Text("Whiteboard drawing is not available on macOS")
+                    .foregroundColor(.gray)
+                    .padding()
+            }
+            .navigationTitle("Whiteboard")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(whiteboard)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+#endif
 
 #Preview {
     WhiteboardView()

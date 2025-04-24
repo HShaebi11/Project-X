@@ -51,6 +51,7 @@ struct NotesView: View {
             .searchable(text: $searchText, prompt: "Search notes")
             .navigationTitle("Notes")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddNote = true
@@ -58,6 +59,15 @@ struct NotesView: View {
                         Image(systemName: "plus")
                     }
                 }
+                #else
+                ToolbarItem {
+                    Button(action: {
+                        showingAddNote = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $showingAddNote) {
                 NoteDetailView(note: Note(title: "", content: "", date: Date()), onSave: { newNote in
@@ -109,15 +119,19 @@ struct NoteDetailView: View {
                     .frame(minHeight: 200)
             }
             .navigationTitle(note.id == UUID() ? "New Note" : "Edit Note")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Save") {
-                    onSave(note)
-                    dismiss()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-            )
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(note)
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
