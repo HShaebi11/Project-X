@@ -7,90 +7,130 @@
 
 import SwiftUI
 
+struct TodoItem: Identifiable, Codable {
+    var id = UUID()
+    var title: String
+    var isCompleted: Bool
+    var date: Date
+}
+
 struct ContentView: View {
-    @State private var selectedTab = 0
+    @State private var todos: [TodoItem] = []
+    @State private var newTodoTitle = ""
+    @State private var showingAddTodo = false
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            CalendarView()
-                .tabItem {
-                    Label("Calendar", systemImage: "calendar")
+        NavigationView {
+            List {
+                ForEach(todos) { todo in
+                    TodoRowView(todo: todo) { updatedTodo in
+                        if let index = todos.firstIndex(where: { $0.id == updatedTodo.id }) {
+                            todos[index] = updatedTodo
+                            saveTodos()
+                        }
+                    }
                 }
-                .tag(0)
+                .onDelete(perform: deleteTodos)
+            }
+            .navigationTitle("Todo List")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingAddTodo = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddTodo) {
+                AddTodoView { newTodo in
+                    todos.append(newTodo)
+                    saveTodos()
+                }
+            }
+            .onAppear {
+                loadTodos()
+            }
+        }
+    }
+    
+    private func deleteTodos(at offsets: IndexSet) {
+        todos.remove(atOffsets: offsets)
+        saveTodos()
+    }
+    
+    private func saveTodos() {
+        if let encoded = try? JSONEncoder().encode(todos) {
+            UserDefaults.standard.set(encoded, forKey: "Todos")
+        }
+    }
+    
+    private func loadTodos() {
+        if let data = UserDefaults.standard.data(forKey: "Todos"),
+           let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) {
+            todos = decoded
+        }
+    }
+}
+
+struct TodoRowView: View {
+    let todo: TodoItem
+    let onUpdate: (TodoItem) -> Void
+    
+    var body: some View {
+        HStack {
+            Button(action: {
+                var updatedTodo = todo
+                updatedTodo.isCompleted.toggle()
+                onUpdate(updatedTodo)
+            }) {
+                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(todo.isCompleted ? .green : .gray)
+            }
             
-            NotesView()
-                .tabItem {
-                    Label("Notes", systemImage: "note.text")
+            VStack(alignment: .leading) {
+                Text(todo.title)
+                    .strikethrough(todo.isCompleted)
+                    .foregroundColor(todo.isCompleted ? .gray : .primary)
+                Text(todo.date, style: .date)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+}
+
+struct AddTodoView: View {
+    @Environment(\.dismiss) var dismiss
+    let onSave: (TodoItem) -> Void
+    
+    @State private var title = ""
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                TextField("Task Title", text: $title)
+            }
+            .navigationTitle("New Task")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-                .tag(1)
-            
-            CaptureView()
-                .tabItem {
-                    Label("Capture", systemImage: "camera")
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let newTodo = TodoItem(
+                            title: title,
+                            isCompleted: false,
+                            date: Date()
+                        )
+                        onSave(newTodo)
+                        dismiss()
+                    }
+                    .disabled(title.isEmpty)
                 }
-                .tag(2)
-            
-            WhiteboardView()
-                .tabItem {
-                    Label("Whiteboard", systemImage: "pencil.and.ruler")
-                }
-                .tag(3)
-        }
-    }
-}
-
-struct CalendarView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Calendar")
-                    .font(.largeTitle)
-                    .bold()
-                // Calendar implementation will go here
             }
-            .navigationTitle("Calendar")
-        }
-    }
-}
-
-struct NotesView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Notes")
-                    .font(.largeTitle)
-                    .bold()
-                // Notes implementation will go here
-            }
-            .navigationTitle("Notes")
-        }
-    }
-}
-
-struct CaptureView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Capture")
-                    .font(.largeTitle)
-                    .bold()
-                // Capture implementation will go here
-            }
-            .navigationTitle("Capture")
-        }
-    }
-}
-
-struct WhiteboardView: View {
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Whiteboard")
-                    .font(.largeTitle)
-                    .bold()
-                // Whiteboard implementation will go here
-            }
-            .navigationTitle("Whiteboard")
         }
     }
 }
